@@ -72,6 +72,81 @@ export class WeatherProvider implements IWeatherProvider {
     district?: string,
     state?: string
   ): Promise<WeatherData> {
+    const startTime = Date.now();
+
+    // 1. Primary Engine: WeatherAPI.com (if key configured)
+    const weatherApiKey = process.env.WEATHER_API_KEY;
+    if (weatherApiKey) {
+      try {
+        const query = `${lat},${lon}`;
+        const weatherApiUrl = `https://api.weatherapi.com/v1/forecast.json?key=${weatherApiKey}&q=${encodeURIComponent(query)}&days=5&aqi=no&alerts=yes`;
+        const res = await fetch(weatherApiUrl, {
+          next: { revalidate: 1800 },
+          signal: AbortSignal.timeout(6000),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const current = data.current;
+          const forecastDays = data.forecast?.forecastday || [];
+          const todayForecast = forecastDays[0]?.day;
+
+          const rainProb = todayForecast?.daily_chance_of_rain ?? (current.precip_mm > 0 ? 80 : 15);
+          const sprayWindow = calculateSprayFeasibility(
+            current.wind_kph ?? 0,
+            rainProb,
+            current.humidity ?? 50,
+            current.temp_c ?? 25
+          );
+
+          const dailyForecast: DailyWeatherForecast[] = forecastDays.map((fd: { date: string; day?: { maxtemp_c?: number; mintemp_c?: number; daily_chance_of_rain?: number; totalprecip_mm?: number; condition?: { code?: number; text?: string } } }) => ({
+            date: fd.date,
+            maxTempC: fd.day?.maxtemp_c ?? current.temp_c,
+            minTempC: fd.day?.mintemp_c ?? current.temp_c,
+            rainProbability: fd.day?.daily_chance_of_rain ?? 0,
+            precipitationMm: fd.day?.totalprecip_mm ?? 0,
+            weatherCode: fd.day?.condition?.code ?? 1000,
+            condition: fd.day?.condition?.text ?? "Clear",
+          }));
+
+          return {
+            location: {
+              latitude: data.location?.lat ?? lat,
+              longitude: data.location?.lon ?? lon,
+              districtName: district || data.location?.name,
+              stateName: state || data.location?.region,
+              timezone: data.location?.tz_id ?? "Asia/Kolkata",
+            },
+            current: {
+              temperatureC: current.temp_c,
+              apparentTemperatureC: current.feelslike_c ?? current.temp_c,
+              relativeHumidity: current.humidity,
+              windSpeedKmh: current.wind_kph,
+              windDirectionDegrees: current.wind_degree ?? 0,
+              precipitationProbability: rainProb,
+              precipitationMm: current.precip_mm ?? 0,
+              weatherCode: current.condition?.code ?? 1000,
+              condition: current.condition?.text ?? "Clear",
+              isDaytime: current.is_day === 1,
+            },
+            dailyForecast,
+            sprayWindow,
+            metadata: {
+              providerName: "WeatherAPI.com Live Microclimate Feed",
+              isRealTime: true,
+              isFallback: false,
+              lastUpdated: new Date().toISOString(),
+              sourceAttribution: "WeatherAPI.com High-Resolution Atmospheric Forecast",
+              officialUrl: "https://weatherapi.com",
+            },
+          };
+        }
+      } catch (err) {
+        console.warn("WeatherAPI primary attempt failed, falling back to Open-Meteo:", err);
+      }
+    }
+
+    // 2. Resilient Fallback Engine: Open-Meteo Numerical Grids
     const url = new URL("https://api.open-meteo.com/v1/forecast");
     url.searchParams.set("latitude", lat.toString());
     url.searchParams.set("longitude", lon.toString());
