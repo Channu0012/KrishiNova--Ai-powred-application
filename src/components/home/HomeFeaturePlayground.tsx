@@ -99,24 +99,24 @@ export function HomeFeaturePlayground() {
   const currentScenario = SCENARIOS.find((s) => s.id === activeScenarioId) || SCENARIOS[0];
 
   return (
-    <section id="how-it-works" className="py-20 bg-slate-900 text-white border-b border-slate-800">
+    <section id="how-it-works" className="py-20 bg-slate-50 text-slate-900 border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="max-w-3xl mb-12 space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-emerald-950 border border-emerald-700 text-xs font-semibold text-emerald-400">
-            <Sparkles className="w-3.5 h-3.5" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-emerald-100 border border-emerald-300 text-xs font-semibold text-emerald-900">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
             <span>Interactive Operational Simulator</span>
           </div>
-          <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+          <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
             How KrishiNova powers real agricultural decisions
           </h2>
-          <p className="text-sm text-slate-400 leading-relaxed">
+          <p className="text-sm text-slate-600 leading-relaxed">
             Toggle through live operational scenarios below to see how meteorological forecasts, market price telemetry, and vision models synthesize into clear, actionable advice.
           </p>
         </div>
 
         {/* Scenario Navigation Tabs */}
-        <div className="flex overflow-x-auto gap-2 pb-4 border-b border-slate-800 no-scrollbar">
+        <div className="flex overflow-x-auto gap-2 pb-4 border-b border-slate-200 no-scrollbar">
           {SCENARIOS.map((sc) => {
             const isActive = sc.id === activeScenarioId;
             return (
@@ -126,8 +126,8 @@ export function HomeFeaturePlayground() {
                 onClick={() => setActiveScenarioId(sc.id)}
                 className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-150 shrink-0 ${
                   isActive
-                    ? "bg-emerald-600 text-white shadow-lg ring-1 ring-emerald-400"
-                    : "bg-slate-800/80 text-slate-300 hover:bg-slate-800 border border-slate-700/60"
+                    ? "bg-emerald-800 text-white shadow-xs"
+                    : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
                 }`}
               >
                 {sc.tabLabel}
@@ -139,21 +139,21 @@ export function HomeFeaturePlayground() {
         {/* Live Simulator Interactive Preview Card */}
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left: Input Telemetry Panel */}
-          <div className="lg:col-span-6 bg-slate-950 rounded-2xl border border-slate-800 p-6 space-y-5 shadow-xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+          <div className="lg:col-span-6 bg-white rounded-2xl border border-slate-200 p-6 space-y-5 shadow-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">
                 {currentScenario.badge}
               </span>
-              <span className="text-[10px] font-mono text-slate-400">
+              <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
                 Simulation Live
               </span>
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-lg font-bold text-slate-900">
                 {currentScenario.title}
               </h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <p className="text-xs text-slate-600 leading-relaxed">
                 {currentScenario.description}
               </p>
             </div>
@@ -163,11 +163,11 @@ export function HomeFeaturePlayground() {
               {currentScenario.metrics.map((m, idx) => (
                 <div 
                   key={idx}
-                  className="p-3.5 rounded-xl bg-slate-900 border border-slate-800/80 space-y-1"
+                  className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1"
                 >
-                  <span className="text-[11px] text-slate-400 block">{m.label}</span>
+                  <span className="text-[11px] text-slate-500 block">{m.label}</span>
                   <span className={`text-sm font-bold font-mono ${
-                    m.status === "bad" ? "text-red-400" : m.status === "good" ? "text-emerald-400" : "text-amber-400"
+                    m.status === "bad" ? "text-red-700" : m.status === "good" ? "text-emerald-800" : "text-amber-700"
                   }`}>
                     {m.value}
                   </span>
@@ -181,43 +181,43 @@ export function HomeFeaturePlayground() {
           </div>
 
           {/* Right: KrishiNova AI Decision Output Panel */}
-          <div className="lg:col-span-6 bg-emerald-950/40 rounded-2xl border border-emerald-800/60 p-6 space-y-5 shadow-xl">
-            <div className="flex items-center justify-between pb-3 border-b border-emerald-800/40">
+          <div className="lg:col-span-6 bg-emerald-50/70 rounded-2xl border border-emerald-200 p-6 space-y-5 shadow-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-emerald-200/60">
               <div className="flex items-center gap-2">
-                <Bot className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-bold text-white">KrishiNova Decision Engine</span>
+                <Bot className="w-4 h-4 text-emerald-800" />
+                <span className="text-xs font-bold text-slate-900">KrishiNova Decision Engine</span>
               </div>
               <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
                 currentScenario.platformAdvice.statusBadge.includes("UNFAVORABLE")
-                  ? "bg-red-950 text-red-300 border border-red-800"
-                  : "bg-emerald-900 text-emerald-200 border border-emerald-700"
+                  ? "bg-red-100 text-red-800 border border-red-200"
+                  : "bg-emerald-100 text-emerald-900 border border-emerald-300"
               }`}>
                 {currentScenario.platformAdvice.statusBadge}
               </span>
             </div>
 
-            <div className="space-y-1.5">
-              <h4 className="text-base font-bold text-emerald-100">
+            <div className="space-y-2">
+              <h4 className="text-base font-bold text-emerald-950">
                 {currentScenario.platformAdvice.verdict}
               </h4>
-              <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+              <p className="text-xs text-slate-700 leading-relaxed bg-white p-4 rounded-xl border border-emerald-200 shadow-2xs">
                 {currentScenario.platformAdvice.actionableGuidance}
               </p>
             </div>
 
             {/* Economic Impact Card */}
-            <div className="p-4 rounded-xl bg-emerald-900/40 border border-emerald-700/50 space-y-1">
-              <span className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider block">
+            <div className="p-4 rounded-xl bg-white border border-emerald-300 space-y-1 shadow-2xs">
+              <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
                 Quantified Farmer Benefit
               </span>
-              <p className="text-xs font-semibold text-white">
+              <p className="text-xs font-semibold text-slate-900">
                 {currentScenario.platformAdvice.economicImpact}
               </p>
             </div>
 
             <div className="pt-2 flex items-center justify-between">
-              <Link href="/auth/login?redirect=/dashboard" className="w-full">
-                <Button size="md" variant="primary" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold">
+              <Link href="/dashboard" className="w-full">
+                <Button size="md" variant="primary" className="w-full bg-emerald-800 hover:bg-emerald-700 text-white font-bold">
                   <span>Test with Your Farm Coordinates</span>
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>

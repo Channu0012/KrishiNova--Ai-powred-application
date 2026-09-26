@@ -26,9 +26,11 @@ import { CropDiagnosticCard } from "@/features/crop-analysis/CropDiagnosticCard"
 import { SchemesExplorerCard } from "@/features/schemes/SchemesExplorerCard";
 import { FarmerProfile } from "@/types/profile";
 import { AuthGuard } from "@/components/auth/AuthGuard";
+import { useAuth } from "@/lib/auth/AuthContext";
 import { useLocationLanguage } from "@/lib/context/LocationLanguageContext";
 
 export default function DashboardPage() {
+  const { user } = useAuth();
   const { activeHub } = useLocationLanguage();
   const [profile, setProfile] = useState<FarmerProfile>({
     userId: "usr_farmer_001",
@@ -80,6 +82,19 @@ export default function DashboardPage() {
     }
     loadProfile();
   }, []);
+
+  // Sync with logged in farmer user session
+  useEffect(() => {
+    if (user) {
+      setProfile((prev) => ({
+        ...prev,
+        fullName: user.fullName || prev.fullName,
+        email: user.email || prev.email,
+        state: user.state || prev.state,
+        district: user.district || prev.district,
+      }));
+    }
+  }, [user]);
 
   // Sync hash deep-linking from header feature links
   useEffect(() => {

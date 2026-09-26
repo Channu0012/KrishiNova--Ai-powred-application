@@ -25,7 +25,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { BlackholeHero } from "@/components/ui/BlackholeHero";
+import { HomeHero } from "@/components/home/HomeHero";
 import { HomeFeaturePlayground } from "@/components/home/HomeFeaturePlayground";
 import { LocationModal } from "@/components/layout/LocationModal";
 import { CookieConsent } from "@/components/layout/CookieConsent";
@@ -43,8 +43,8 @@ export default function LandingPage() {
       <LocationModal />
 
       <main className="flex-1 w-full max-w-full overflow-x-hidden">
-        {/* 1. Cosmic Blackhole Hero Section */}
-        <BlackholeHero />
+        {/* 1. Clean White Agricultural Hero Section */}
+        <HomeHero />
 
         {/* 2. Interactive Operational Decision Simulator */}
         <HomeFeaturePlayground />
@@ -162,11 +162,11 @@ export default function LandingPage() {
 
             <div className="overflow-x-auto border border-slate-200 rounded-2xl bg-white shadow-xs">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-900 text-white font-bold uppercase tracking-wider text-[11px]">
+                <thead className="bg-slate-100 text-slate-800 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
                   <tr>
                     <th className="p-4">Operational Capability</th>
-                    <th className="p-4 text-emerald-400">KrishiNova Enterprise Standard</th>
-                    <th className="p-4 text-slate-400">Traditional / Disjointed Systems</th>
+                    <th className="p-4 text-emerald-800">KrishiNova Enterprise Standard</th>
+                    <th className="p-4 text-slate-600">Traditional / Disjointed Systems</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -368,29 +368,29 @@ export class ProviderFactory {
         {/* 7. Dedicated Trust, Integrity & Launch CTA */}
         <section className="py-16 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="p-8 sm:p-12 rounded-3xl bg-slate-950 text-white flex flex-col md:flex-row items-center justify-between gap-8 border border-slate-800 shadow-2xl relative overflow-hidden">
+            <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 text-white flex flex-col md:flex-row items-center justify-between gap-8 border border-emerald-700/60 shadow-xl relative overflow-hidden">
               <div className="space-y-3 max-w-2xl relative z-10">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950 border border-emerald-700 text-xs font-semibold text-emerald-400">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-600 text-xs font-semibold text-emerald-300">
                   <ShieldCheck className="w-4 h-4" />
                   <span>Production Ready Agricultural Intelligence</span>
                 </div>
                 <h3 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                   Experience Truth in Agriculture with KrishiNova
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                <p className="text-xs sm:text-sm text-emerald-100 leading-relaxed">
                   Join Indian agriculturalists utilizing verified atmospheric data, transparent Agmarknet modal prices, and multimodal vision diagnostics.
                 </p>
               </div>
 
               <div className="relative z-10 flex flex-col sm:flex-row gap-3 w-full md:w-auto shrink-0">
-                <Link href="/auth/login?redirect=/dashboard" className="w-full sm:w-auto">
-                  <Button size="lg" variant="primary" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-8 shadow-xl">
+                <Link href="/dashboard" className="w-full sm:w-auto">
+                  <Button size="lg" variant="primary" className="w-full sm:w-auto bg-white hover:bg-slate-100 text-emerald-900 font-bold px-8 shadow-md">
                     <span>Access Dashboard</span>
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </Link>
                 <Link href="/schemes" className="w-full sm:w-auto">
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto border-slate-700 text-slate-200 hover:bg-slate-800">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto border-emerald-400 text-white hover:bg-emerald-800/80">
                     Browse Schemes
                   </Button>
                 </Link>

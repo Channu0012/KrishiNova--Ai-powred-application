@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { User, Mail, Lock, MapPin, Sprout, ShieldCheck, AlertCircle, ArrowRight } from "lucide-react";
+import { User, Mail, Lock, MapPin, Sprout, ShieldCheck, AlertCircle, ArrowRight, Zap } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/Button";
@@ -13,7 +13,7 @@ import { useAuth } from "@/lib/auth/AuthContext";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, demoLogin } = useAuth();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -90,10 +90,18 @@ export default function RegisterPage() {
         }),
       });
 
-      await login(email, password);
+      await login(email, password, {
+        fullName: fullName.trim(),
+        state,
+        district,
+      });
       router.push("/dashboard");
     } catch {
-      await login(email, password);
+      await login(email, password, {
+        fullName: fullName.trim(),
+        state,
+        district,
+      });
       router.push("/dashboard");
     } finally {
       setLoading(false);
@@ -114,6 +122,30 @@ export default function RegisterPage() {
             <p className="text-xs text-slate-500">
               Register to receive personalized weather alerts, mandi rates, and AI crop advice.
             </p>
+          </div>
+
+          {/* Quick Evaluator Mode */}
+          <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200/80 space-y-2 text-center">
+            <span className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider flex items-center justify-center gap-1">
+              <Zap className="w-3.5 h-3.5 text-emerald-700" />
+              <span>Instant Evaluator Demo</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                demoLogin();
+                router.push("/dashboard");
+              }}
+              className="w-full py-2 px-3 rounded-lg bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <span>⚡ Skip & Open Dashboard as Ramesh Patil</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="relative flex items-center justify-center">
+            <div className="border-t border-slate-200 w-full" />
+            <span className="bg-white px-3 text-[11px] text-slate-400 uppercase font-semibold">Or fill farmer details</span>
           </div>
 
           {error && (

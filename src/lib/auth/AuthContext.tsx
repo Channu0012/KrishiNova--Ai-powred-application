@@ -16,7 +16,11 @@ interface AuthContextType {
   user: UserSession | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password?: string) => Promise<boolean>;
+  login: (
+    email: string, 
+    password?: string, 
+    profileData?: { fullName?: string; state?: string; district?: string }
+  ) => Promise<boolean>;
   demoLogin: () => void;
   logout: () => void;
 }
@@ -52,18 +56,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const login = async (email: string, password?: string): Promise<boolean> => {
+  const login = async (
+    email: string, 
+    password?: string, 
+    profileData?: { fullName?: string; state?: string; district?: string }
+  ): Promise<boolean> => {
     setIsLoading(true);
     // Simulate authentication verification
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    await new Promise((resolve) => setTimeout(resolve, 300));
     
     // In preview/hackathon mode, allow any valid email + 6 char password
     const newUser: UserSession = {
       userId: `usr_${Date.now()}`,
-      fullName: email.split("@")[0].replace(".", " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+      fullName: profileData?.fullName?.trim() || email.split("@")[0].replace(".", " ").replace(/\b\w/g, (c) => c.toUpperCase()),
       email,
-      state: "Maharashtra",
-      district: "Nashik",
+      state: profileData?.state || "Maharashtra",
+      district: profileData?.district || "Nashik",
       role: "farmer",
       token: `jwt_${Date.now()}`,
     };

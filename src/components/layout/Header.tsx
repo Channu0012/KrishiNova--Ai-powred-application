@@ -29,13 +29,13 @@ export function Header() {
   const { activeHub, setIsLocationModalOpen, language, setLanguage, t } = useLocationLanguage();
   const { isAuthenticated, user, logout } = useAuth();
 
-  const navLinks = [
-    { href: "/dashboard", labelKey: "nav.dashboard", defaultLabel: "Dashboard", shortLabel: "Dashboard", icon: LayoutDashboard },
-    { href: "/dashboard#weather", labelKey: "nav.weather", defaultLabel: "Weather & Spray", shortLabel: "Weather", icon: CloudSun },
-    { href: "/dashboard#markets", labelKey: "nav.markets", defaultLabel: "Mandi Rates", shortLabel: "Mandi", icon: TrendingUp },
-    { href: "/dashboard#crop-health", labelKey: "nav.crop_diagnostic", defaultLabel: "Crop Diagnostic", shortLabel: "Diagnostic", icon: Scan },
-    { href: "/dashboard#ai-assistant", labelKey: "nav.ai_assistant", defaultLabel: "AI Assistant", shortLabel: "AI Advisor", icon: Bot },
-    { href: "/schemes", labelKey: "nav.schemes", defaultLabel: "Govt Schemes", shortLabel: "Schemes", icon: Landmark },
+  const isDashboardView = pathname.startsWith("/dashboard") || pathname.startsWith("/profile");
+
+  const publicNavLinks = [
+    { href: "/", label: "Home" },
+    { href: "/#how-it-works", label: "Features" },
+    { href: "/schemes", label: "Govt Schemes" },
+    { href: "/dashboard", label: "Dashboard" },
   ];
 
   return (
@@ -67,37 +67,60 @@ export function Header() {
             </div>
           </Link>
 
-          {/* 2. Center: Clear Feature Navigation */}
-          <nav 
-            className="hidden md:flex items-center gap-1 lg:gap-1.5 min-w-0" 
-            aria-label="Core Platform Features"
-          >
-            {navLinks.map((link) => {
-              const Icon = link.icon;
-              const isActive = pathname === link.href || (link.href !== "/dashboard" && pathname.startsWith(link.href));
-              const translatedText = t(link.labelKey) || link.defaultLabel;
+          {/* 2. Center: Dedicated Navigation */}
+          {isDashboardView ? (
+            /* Dedicated Dashboard Mode: Only show Dashboard and Profile links */
+            <nav className="hidden md:flex items-center gap-2" aria-label="Dashboard Navigation">
+              <Link
+                href="/dashboard"
+                className={cn(
+                  "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 shrink-0",
+                  pathname.startsWith("/dashboard")
+                    ? "bg-emerald-800 text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                )}
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Dashboard</span>
+              </Link>
 
-              return (
-                <Link
-                  key={link.defaultLabel}
-                  href={link.href}
-                  className={cn(
-                    "flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none shrink-0",
-                    isActive
-                      ? "bg-emerald-50 text-emerald-900 border border-emerald-300/80 font-semibold shadow-2xs"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/90"
-                  )}
-                >
-                  <Icon className="w-3.5 h-3.5 text-emerald-700 shrink-0" aria-hidden="true" />
-                  {/* Full label on lg+, concise label on md */}
-                  <span className="hidden lg:inline">{translatedText}</span>
-                  <span className="inline lg:hidden">{link.shortLabel}</span>
-                </Link>
-              );
-            })}
-          </nav>
+              <Link
+                href="/profile"
+                className={cn(
+                  "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 shrink-0",
+                  pathname.startsWith("/profile")
+                    ? "bg-emerald-800 text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                )}
+              >
+                <User className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Profile</span>
+              </Link>
+            </nav>
+          ) : (
+            /* Public Landing Mode: Clean Marketing Links */
+            <nav className="hidden md:flex items-center gap-1 lg:gap-2" aria-label="Main Navigation">
+              {publicNavLinks.map((link) => {
+                const isActive = pathname === link.href;
+                return (
+                  <Link
+                    key={link.label}
+                    href={link.href}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 shrink-0",
+                      isActive
+                        ? "bg-emerald-50 text-emerald-900 font-semibold border border-emerald-200"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    )}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          )}
 
-          {/* 3. Right: Header Controls (Location Selector, Language, Profile Icon Only) */}
+          {/* 3. Right: Header Controls (Location, Language, Profile/Sign In/Out) */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             {/* Interactive Location Chip */}
             <button
@@ -133,37 +156,58 @@ export function Header() {
               </select>
             </div>
 
-            {/* SINGLE Profile Icon Button Only (No Text, No Portal) */}
-            {isAuthenticated ? (
-              <Link
-                href="/profile"
-                title={`Farmer Profile: ${user?.fullName || "Active"}`}
-                aria-label="Farmer Profile & Settings"
-                className={cn(
-                  "relative w-9 h-9 flex items-center justify-center rounded-lg border transition-all duration-150 shrink-0 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none",
-                  pathname === "/profile"
-                    ? "bg-emerald-100/80 text-emerald-950 border-emerald-400 ring-2 ring-emerald-500/20 shadow-xs"
-                    : "bg-white text-slate-700 hover:text-emerald-900 hover:bg-emerald-50/60 hover:border-emerald-300 border-slate-200 shadow-2xs"
-                )}
+            {/* Profile & Auth Status Controls */}
+            {isDashboardView ? (
+              /* Inside Dashboard/Profile: Show sign-out button */
+              <button
+                type="button"
+                onClick={logout}
+                title="Sign Out of Farmer Account"
+                className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 transition-colors"
               >
-                <User className="w-4 h-4 text-emerald-800" aria-hidden="true" />
-                <span className="sr-only">Farmer Profile</span>
-                {/* Online / Active status indicator dot */}
-                <span 
-                  className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-600 ring-2 ring-white" 
-                  aria-hidden="true"
-                />
-              </Link>
+                <LogOut className="w-3.5 h-3.5 text-slate-500" />
+                <span>Sign Out</span>
+              </button>
+            ) : isAuthenticated ? (
+              /* Public page while logged in: Profile Icon link + Dashboard CTA */
+              <div className="flex items-center gap-1.5">
+                <Link
+                  href="/profile"
+                  title={`Farmer Profile: ${user?.fullName || "Active"}`}
+                  className={cn(
+                    "relative w-9 h-9 flex items-center justify-center rounded-lg border transition-all duration-150 shrink-0",
+                    pathname === "/profile"
+                      ? "bg-emerald-100/80 text-emerald-950 border-emerald-400 shadow-xs"
+                      : "bg-white text-slate-700 hover:text-emerald-900 hover:bg-emerald-50/60 border-slate-200"
+                  )}
+                >
+                  <User className="w-4 h-4 text-emerald-800" aria-hidden="true" />
+                  <span className="sr-only">Farmer Profile</span>
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-600 ring-2 ring-white" />
+                </Link>
+                <Link
+                  href="/dashboard"
+                  className="hidden sm:inline-flex items-center text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-800 text-white hover:bg-emerald-700 shadow-xs transition-colors"
+                >
+                  Dashboard
+                </Link>
+              </div>
             ) : (
-              <Link
-                href="/auth/login?redirect=/dashboard"
-                title="Sign In to Farmer Account"
-                aria-label="Sign In to Farmer Account"
-                className="relative w-9 h-9 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-emerald-900 hover:border-emerald-300 hover:bg-emerald-50/50 transition-all shrink-0"
-              >
-                <User className="w-4 h-4 text-slate-600" aria-hidden="true" />
-                <span className="sr-only">Sign In to Account</span>
-              </Link>
+              /* Public page when not logged in: Sign In link */
+              <div className="flex items-center gap-1.5">
+                <Link
+                  href="/auth/login?redirect=/dashboard"
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/auth/register"
+                  className="hidden sm:inline-flex items-center text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-800 text-white hover:bg-emerald-700 shadow-xs transition-colors"
+                >
+                  Create Account
+                </Link>
+              </div>
             )}
 
             {/* Mobile Navigation Drawer Toggle */}
@@ -208,29 +252,58 @@ export function Header() {
             </span>
           </div>
 
-          {/* Mobile Feature Links */}
-          {navLinks.map((link) => {
-            const Icon = link.icon;
-            const isActive = pathname === link.href;
-            const labelText = t(link.labelKey) || link.defaultLabel;
-
-            return (
+          {/* Mobile Navigation Links */}
+          {isDashboardView ? (
+            <div className="space-y-1">
               <Link
-                key={link.defaultLabel}
-                href={link.href}
+                href="/dashboard"
                 onClick={() => setMobileMenuOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-emerald-50 text-emerald-900 font-semibold"
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors",
+                  pathname.startsWith("/dashboard")
+                    ? "bg-emerald-800 text-white"
                     : "text-slate-700 hover:bg-slate-100"
                 )}
               >
-                <Icon className="w-4 h-4 text-emerald-700 shrink-0" aria-hidden="true" />
-                <span>{labelText}</span>
+                <LayoutDashboard className="w-4 h-4 text-emerald-600" aria-hidden="true" />
+                <span>Dashboard</span>
               </Link>
-            );
-          })}
+              <Link
+                href="/profile"
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors",
+                  pathname.startsWith("/profile")
+                    ? "bg-emerald-800 text-white"
+                    : "text-slate-700 hover:bg-slate-100"
+                )}
+              >
+                <User className="w-4 h-4 text-emerald-600" aria-hidden="true" />
+                <span>Farmer Profile</span>
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {publicNavLinks.map((link) => {
+                const isActive = pathname === link.href;
+                return (
+                  <Link
+                    key={link.label}
+                    href={link.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      "flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                      isActive
+                        ? "bg-emerald-50 text-emerald-900 font-semibold"
+                        : "text-slate-700 hover:bg-slate-100"
+                    )}
+                  >
+                    <span>{link.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
 
           {/* Auth & Profile Access in Mobile Drawer */}
           <div className="pt-3 border-t border-slate-100 space-y-2">
@@ -262,14 +335,23 @@ export function Header() {
                 </button>
               </>
             ) : (
-              <Link
-                href="/auth/login?redirect=/dashboard"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
-              >
-                <LogIn className="w-4 h-4" />
-                <span>Sign In to Access Dashboard</span>
-              </Link>
+              <div className="space-y-2">
+                <Link
+                  href="/auth/login?redirect=/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full text-center bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Sign In to Access Dashboard</span>
+                </Link>
+                <Link
+                  href="/auth/register"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full text-center border border-slate-200 text-slate-700 text-xs font-semibold py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <span>Create Account</span>
+                </Link>
+              </div>
             )}
 
             {/* Mobile Language Selector */}
