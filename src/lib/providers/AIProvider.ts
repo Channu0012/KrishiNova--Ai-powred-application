@@ -1,0 +1,202 @@
+import { IAIProvider } from "./IAIProvider";
+import { FarmContext, AIAdvisoryResponse } from "@/types/ai";
+import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
+
+export class AIProvider implements IAIProvider {
+  private bedrockClient: BedrockRuntimeClient | null = null;
+  private modelId: string;
+
+  constructor() {
+    this.modelId = process.env.BEDROCK_MODEL_ID || "amazon.nova-lite-v1:0";
+    const region = process.env.BEDROCK_REGION || process.env.AWS_REGION || "ap-south-1";
+
+    // Only instantiate Bedrock client if AWS credentials are provided
+    if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+      try {
+        this.bedrockClient = new BedrockRuntimeClient({
+          region,
+          credentials: {
+            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+            sessionToken: process.env.AWS_SESSION_TOKEN,
+          },
+        });
+      } catch (e) {
+        console.warn("Failed to initialize Bedrock client:", e);
+        this.bedrockClient = null;
+      }
+    }
+  }
+
+  async generateAgronomicAdvice(context: FarmContext, query: string): Promise<AIAdvisoryResponse> {
+    // 1. Try Amazon Bedrock / Nova if client is available
+    if (this.bedrockClient) {
+      try {
+        const systemPrompt = `You are KrishiNova Agronomic AI, an expert agricultural scientist advising Indian farmers.
+You must adhere strictly to these principles:
+1. Provide actionable, factual, safe agronomic advice tailored to the farmer's crop stage, soil, and live weather.
+2. If rain is expected within 24-48 hours, strictly advise against foliar spraying to prevent chemical wash-off.
+3. Recommend both organic/bio-control and CIBRC-approved chemical solutions where appropriate.
+4. Output STRICT JSON format matching the schema:
+{
+  "recommendation": "string",
+  "rationale": "string",
+  "actionSteps": ["string", "string", "string"],
+  "safetyWarning": "string",
+  "expertConsultationNote": "string"
+}`;
+
+        const userPrompt = `Farmer Context:
+- Crop: ${context.crop}
+- Stage: ${context.cropStage || "Active Growth"} (Age: ${context.ageDays || "Unknown"} days)
+- Location: ${context.district}, ${context.state}
+- Soil: ${context.soilType || "Not specified"}
+- Irrigation: ${context.irrigationMode || "Not specified"}
+- Live Weather: ${context.weatherSummary || "Standard seasonal conditions"}
+
+Farmer Question: "${query}"
+
+Return valid JSON adhering to the specified schema.`;
+
+        // Payload format for Amazon Nova Lite / Micro
+        const payload = {
+          messages: [
+            { role: "system", content: [{ text: systemPrompt }] },
+            { role: "user", content: [{ text: userPrompt }] },
+          ],
+          inferenceConfig: {
+            max_new_tokens: 800,
+            temperature: 0.2,
+            top_p: 0.9,
+          },
+        };
+
+        const command = new InvokeModelCommand({
+          modelId: this.modelId,
+          contentType: "application/json",
+          accept: "application/json",
+          body: JSON.stringify(payload),
+        });
+
+        const bedrockRes = await this.bedrockClient.send(command);
+        const resBody = new TextDecoder().decode(bedrockRes.body);
+        const parsed = JSON.parse(resBody);
+
+        let outputText = "";
+        if (parsed.output?.message?.content?.[0]?.text) {
+          outputText = parsed.output.message.content[0].text;
+        } else if (parsed.generation) {
+          outputText = parsed.generation;
+        }
+
+        const jsonMatch = outputText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const advisory = JSON.parse(jsonMatch[0]);
+          return {
+            recommendation: advisory.recommendation,
+            rationale: advisory.rationale,
+            actionSteps: advisory.actionSteps || [],
+            safetyWarning: advisory.safetyWarning || "Wear PPE and adhere strictly to waiting periods before harvest.",
+            expertConsultationNote: advisory.expertConsultationNote || "Escalate to nearest KVK if damage exceeds economic threshold.",
+            disclaimer: "KrishiNova AI recommendations are decision-support tools. Consult local Krishi Vigyan Kendra (KVK) officers for statutory advice.",
+            metadata: {
+              providerName: `Amazon Bedrock (${this.modelId})`,
+              isRealTime: true,
+              isFallback: false,
+              lastUpdated: new Date().toISOString(),
+              sourceAttribution: "Amazon Bedrock Foundation Model",
+            },
+          };
+        }
+      } catch (err) {
+        console.warn("Bedrock inference failed, invoking local agronomic rule engine:", err);
+      }
+    }
+
+    // 2. Deterministic Expert Agronomic Engine (Zero Hallucination Fallback)
+    return this.generateDeterministicAdvisory(context, query);
+  }
+
+  private generateDeterministicAdvisory(context: FarmContext, query: string): AIAdvisoryResponse {
+    const qLower = query.toLowerCase();
+    const cropLower = context.crop.toLowerCase();
+    const weatherLower = (context.weatherSummary || "").toLowerCase();
+    const hasRainRisk = weatherLower.includes("rain") || qLower.includes("rain") || weatherLower.includes("drizzle");
+
+    let recommendation = "";
+    let rationale = "";
+    const actionSteps: string[] = [];
+    let safetyWarning = "";
+    let expertConsultationNote = "";
+
+    if (cropLower.includes("tomato")) {
+      if (hasRainRisk) {
+        recommendation = "Postpone all foliar chemical applications until at least 24 hours post-rainfall. Inspect plot drainage channels immediately to prevent water stagnation.";
+        rationale = "Tomato crops at flowering/fruiting stage are highly susceptible to Early Blight (Alternaria solani) and Blossom End Rot during wet spells. Foliar sprays applied prior to rainfall are washed off into soil, resulting in complete chemical loss and groundwater contamination.";
+        actionSteps.push("1. Clear field drainage trenches to ensure excess precipitation exits the root zone freely.");
+        actionSteps.push("2. Once rainfall stops and leaf surfaces dry, apply a protective bio-fungicide (Trichoderma viride @ 5g/L) or Copper Oxychloride 50% WP @ 2.5g/L.");
+        actionSteps.push("3. Prune lowest leaves touching the soil surface to break the ground-to-canopy spore splash cycle.");
+        safetyWarning = "Do not apply chemical fungicides within 7 days of harvest (pre-harvest interval). Always wear nitrile gloves and protective face shield.";
+        expertConsultationNote = "If dark concentric target-board lesions appear on more than 15% of lower foliage after rain, take a leaf specimen to your Taluka Agricultural Officer or KVK.";
+      } else {
+        recommendation = "Maintain regular drip irrigation intervals and monitor tomato canopy for sucking pests (whiteflies, thrips) and nutrient deficiencies.";
+        rationale = "Steady soil moisture is critical during flowering and fruit setting to prevent calcium mobilization failure (blossom end rot). Warm dry spells accelerate sucking pest proliferation.";
+        actionSteps.push("1. Provide 2-3 hours of drip irrigation in early morning to maintain consistent root-zone moisture.");
+        actionSteps.push("2. Install yellow sticky traps (15 traps/acre) at canopy height to monitor whitefly vectors of Tomato Leaf Curl Virus.");
+        actionSteps.push("3. Spray 0.5% micronutrient mixture (Zinc, Boron, Calcium) during early flowering to enhance fruit set.");
+        safetyWarning = "Avoid spraying insecticides during peak honeybee foraging hours (9:00 AM to 3:00 PM).";
+        expertConsultationNote = "Consult local agronomists if severe leaf curling accompanied by stunted terminal growth is observed.";
+      }
+    } else if (cropLower.includes("paddy") || cropLower.includes("rice")) {
+      if (hasRainRisk) {
+        recommendation = "Adjust bund heights to retain needed water depth while preventing field overflow. Suspend urea top-dressing until weather stabilizes.";
+        rationale = "Nitrogenous fertilizers applied prior to heavy rainfall will undergo severe leaching losses and runoff into drainage channels without plant uptake.";
+        actionSteps.push("1. Regulate outlet pipes on paddy bunds to maintain water level at 3-5 cm.");
+        actionSteps.push("2. Defer top-dressing of Urea and MOP until rain subsides.");
+        actionSteps.push("3. Monitor waterlogged seedlings for Bacterial Leaf Blight (BLB) symptoms.");
+        safetyWarning = "Maintain field water flow to prevent mosquito larval breeding in non-aerated stagnation zones.";
+        expertConsultationNote = "If translucent water-soaked streaks appear along leaf margins, notify the district extension lab.";
+      } else {
+        recommendation = "Maintain 3-5 cm shallow standing water during tillering and panicle development. Apply scheduled split dose of potash and nitrogen.";
+        rationale = "Water stress during tillering significantly reduces productive panicle numbers per hill.";
+        actionSteps.push("1. Practice alternate wetting and drying (AWD) if irrigation source is dependable to conserve water and strengthen root anchorage.");
+        actionSteps.push("2. Apply balanced N-P-K according to Soil Health Card guidelines.");
+        actionSteps.push("3. Scout for stem borer dead hearts at 10-day intervals.");
+        safetyWarning = "Use personal protective equipment when applying granular weedicides or pesticides.";
+        expertConsultationNote = "Consult KVK if stem borer incidence exceeds 5% dead hearts at vegetative stage.";
+      }
+    } else if (cropLower.includes("cotton")) {
+      recommendation = "Monitor terminal shoots for pink bollworm and sucking pests (aphids, jassids). Ensure soil has adequate aeration.";
+      rationale = "Cotton is sensitive to waterlogging. High humidity triggers square rot and boll shed if drainage is impeded.";
+      actionSteps.push("1. Form ridges and furrows to drain excess standing water.");
+      actionSteps.push("2. Install pheromone traps for pink bollworm (5 traps/acre) to track adult moth emergence.");
+      actionSteps.push("3. Apply 5% Neem Seed Kernel Extract (NSKE) at early square formation as an oviposition deterrent.");
+      safetyWarning = "Ensure zero livestock grazing in fields recently treated with synthetic pyrethroids.";
+      expertConsultationNote = "If rosette flowers or boll damage exceeds 10%, escalate to the nearest Central Institute for Cotton Research (CICR) advisory center.";
+    } else {
+      recommendation = `Adopt balanced irrigation and nutrient management for ${context.crop} at ${context.cropStage || "current"} stage.`;
+      rationale = `Agronomic management must balance soil moisture and pest thresholds in ${context.district}, ${context.state}.`;
+      actionSteps.push(`1. Conduct weekly field scouting on ${context.crop} foliage for early pest symptoms.`);
+      actionSteps.push("2. Verify soil moisture depth before scheduling the next irrigation cycle.");
+      actionSteps.push("3. Follow recommended fertilizer dosage per local State Agricultural University package of practices.");
+      safetyWarning = "Always read agrochemical container labels for required personal protective equipment (PPE).";
+      expertConsultationNote = "For crop-specific diagnostic confirmation, bring leaf or soil samples to the nearest Krishi Vigyan Kendra.";
+    }
+
+    return {
+      recommendation,
+      rationale,
+      actionSteps,
+      safetyWarning,
+      expertConsultationNote,
+      disclaimer: "KrishiNova AI recommendations are decision-support tools. Consult local Krishi Vigyan Kendra (KVK) officers for statutory advice.",
+      metadata: {
+        providerName: "KrishiNova Agronomic Rules Engine (Local Engine - AWS Bedrock Disconnected)",
+        isRealTime: true,
+        isFallback: true,
+        lastUpdated: new Date().toISOString(),
+        sourceAttribution: "ICAR / State Agricultural University agronomic package of practices",
+      },
+    };
+  }
+}

@@ -1,0 +1,128 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'KrishiNova Production Infrastructure - DynamoDB Single-Table, S3 Asset Bucket, and IAM Roles'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Deployment environment tier
+
+Resources:
+  # 1. DynamoDB Single Table
+  KrishiNovaDynamoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'KrishiNovaTable-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+        - AttributeName: GSI1SK
+          AttributeType: S
+        - AttributeName: GSI2PK
+          AttributeType: S
+        - AttributeName: GSI2SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: GSI1SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: GSI2
+          KeySchema:
+            - AttributeName: GSI2PK
+              KeyType: HASH
+            - AttributeName: GSI2SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  # 2. S3 Bucket for Crop Diagnostic Leaf Photos
+  KrishiNovaCropAssetBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'krishinova-crop-assets-${Environment}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+            AllowedOrigins:
+              - 'https://krishinova.in'
+              - 'http://localhost:3000'
+            MaxAge: 3600
+
+  # 3. IAM Managed Policy for Amplify SSR Lambda Execution
+  KrishiNovaAppPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Managed policy granting KrishiNova access to DynamoDB, S3, and Bedrock Nova
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+              - dynamodb:DeleteItem
+              - dynamodb:Query
+            Resource:
+              - !GetAtt KrishiNovaDynamoTable.Arn
+              - !Sub '${KrishiNovaDynamoTable.Arn}/index/*'
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+              - s3:GetObject
+            Resource:
+              - !Sub '${KrishiNovaCropAssetBucket.Arn}/*'
+          - Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+            Resource:
+              - !Sub 'arn:aws:bedrock:*::foundation-model/amazon.nova-lite-v1:0'
+              - !Sub 'arn:aws:bedrock:*::foundation-model/amazon.nova-pro-v1:0'
+
+Outputs:
+  DynamoDBTableName:
+    Value: !Ref KrishiNovaDynamoTable
+    Description: DynamoDB Single-Table Name
+  S3BucketName:
+    Value: !Ref KrishiNovaCropAssetBucket
+    Description: Crop Uploads S3 Bucket
